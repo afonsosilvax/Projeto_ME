@@ -1,0 +1,79 @@
+---
+title: "Problem_Set3"
+author: "Afonso Silva, Tomás Ribeiro, Rui Chaves e Leonor Pereira"
+date: "2023-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#importações
+
+#install.packages("simmer.plot")
+#install.packages("simmer")
+library(simmer)
+library(magrittr)
+library(simmer.plot)
+```
+
+```{r}
+consulta <- function() {sample(0:2, 1, replace = T, prob = c(0.30, 0.60, 0.10))}
+# 0-sem consulta, 1-consulta telefónica, 2-consulta presencial
+```
+
+```{r}
+# Funções
+chegada_contactos <- function() rexp(1, 2/3)
+
+telefonemas <- function() rexp(1, 1.7/3)
+mensagens <- function() rexp(1, 0.3/3)
+  
+triagem <- function() rnorm(1, 4, 1)
+tomada_decisao <- function() rnorm(1, 1, 0.25)
+marcacao_consulta <- function() rnorm(1, 1, 0.25)
+```
+
+```{r}
+set.seed(2023)
+
+contactos <- trajectory("gestao_contactos") %>%
+  log_("Cheguei") %>%
+  
+  renege_in(5, out = trajectory("Rejeita chamada") %>%
+              log_("Desliguei a chamada")) %>%
+  
+  select(c("administrativo1", "administrativo2"), policy = "shortest-queue") %>%
+  seize_selected() %>%
+  renege_abort() %>%
+  log_("Vou agora ser atendido") %>%
+  
+  set_attribute("tipo_consulta", function() ifelse(consulta()==0, "Sem_consulta", ifelse(consulta()==1, "Telefonica", "Presencial"))) %>%
+  
+  timeout(function() ifelse(get_attribute(env, "tipo_consullta") == c("Telefonica" | "Presencial"), triagem + tomada_decisao + marcacao_consulta, triagem + tomada_decisao)) %>%
+  
+  release_selected() %>%
+  log_("Já fui atendido")
+
+# Cópias do template
+
+
+# Modificação da trajectory
+
+env <- simmer("servico") %>%
+  add_resource("administrativo1", 1) %>%
+  add_resource("administrativo2", 1) %>%
+  add_generator("Telefonema", contactos, telefonemas, priority = 1) %>%
+  add_generator("Mensagem", contactos, mensagens) %>%
+  run(600)
+
+env %>% get_mon_arrivals()
+```
+
+```{r}
+# distinção telefone mensagem
+set_attribute("tipo_contato", function() ifelse(runif(1) < 0.85, "telefone", "mensagem"))
+```
+
