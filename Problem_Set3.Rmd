@@ -20,56 +20,50 @@ library(simmer.plot)
 ```
 
 ```{r}
-consulta <- function() {sample(0:2, 1, replace = T, prob = c(0.30, 0.60, 0.10))}
+consulta <- function() {as.numeric(sample(0:2, 1, replace = T, prob = c(0.30, 0.60, 0.10)))}
 # 0-sem consulta, 1-consulta telefónica, 2-consulta presencial
 ```
 
 ```{r}
 # Funções
-chegada_contactos <- function() rexp(1, 2/3)
+chegada_contactos <- function() as.numeric(rexp(1, 2/3))
 
-telefonemas <- function() rexp(1, 1.7/3)
-mensagens <- function() rexp(1, 0.3/3)
+telefonemas <- function() as.numeric(rexp(1, 1.7/3))
+mensagens <- function() as.numeric(rexp(1, 0.3/3))
   
-triagem <- function() rnorm(1, 4, 1)
-tomada_decisao <- function() rnorm(1, 1, 0.25)
-marcacao_consulta <- function() rnorm(1, 1, 0.25)
+triagem <- function() as.numeric(rnorm(1, 4, 1))
+tomada_decisao <- function() as.numeric(rnorm(1, 1, 0.25))
+marcacao_consulta <- function() as.numeric(rnorm(1, 1, 0.25))
+
+tempo <- function() ifelse(consulta() == 0, triagem() + tomada_decisao(), triagem() + tomada_decisao() + marcacao_consulta())
 ```
 
 ```{r}
 set.seed(2023)
 
-contactos <- trajectory("gestao_contactos") %>%
+
+contactos <- trajectory("Gestao_contactos") %>%
   log_("Cheguei") %>%
   
-  renege_in(5, out = trajectory("Rejeita chamada") %>%
-              log_("Desliguei a chamada")) %>%
+  renege_in(5, out = trajectory("Rejeita chamada") %>% log_("Desliguei a chamada")) %>%
   
-  select(c("administrativo1", "administrativo2"), policy = "shortest-queue") %>%
-  seize_selected() %>%
+  seize("administrativo") %>%
   renege_abort() %>%
   log_("Vou agora ser atendido") %>%
   
-  set_attribute("tipo_consulta", function() ifelse(consulta()==0, "Sem_consulta", ifelse(consulta()==1, "Telefonica", "Presencial"))) %>%
+  set_attribute("tipo_consulta", tempo) %>%
   
-  timeout(function() ifelse(get_attribute(env, "tipo_consullta") == c("Telefonica" | "Presencial"), triagem + tomada_decisao + marcacao_consulta, triagem + tomada_decisao)) %>%
+  timeout_from_attribute("tipo_consulta") %>%
   
-  release_selected() %>%
+  release("administrativo") %>%
   log_("Já fui atendido")
 
-# Cópias do template
-
-
-# Modificação da trajectory
-
 env <- simmer("servico") %>%
-  add_resource("administrativo1", 1) %>%
-  add_resource("administrativo2", 1) %>%
-  add_generator("Telefonema", contactos, telefonemas, priority = 1) %>%
+  add_resource("administrativo", 2) %>%
+  add_generator("Telefonema", contactos, telefonemas) %>%
   add_generator("Mensagem", contactos, mensagens) %>%
   run(600)
 
-env %>% get_mon_arrivals()
 ```
 
 ```{r}
