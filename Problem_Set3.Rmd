@@ -92,6 +92,8 @@ plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
 
 ```{r}
+set.seed(2023)
+
 envs <- lapply(1:50, function(i) {
   simmer("servico") %>%
   add_resource("administrativo", 2) %>%
@@ -130,7 +132,6 @@ Situação de melhoria
 
 ```{r}
 set.seed(2023)
-
 
 contactos <- trajectory("Gestao_contactos") %>%
   branch(tipo_contacto, continue = c(TRUE), 
@@ -184,6 +185,8 @@ plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
 
 ```{r}
+set.seed(2023)
+
 envs <- lapply(1:50, function(i) {
   simmer("servico") %>%
   add_resource("administrativo", capacity = schedule) %>%
@@ -275,6 +278,8 @@ plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
 
 ```{r}
+set.seed(2023)
+
 envs <- lapply(1:50, function(i) {
   simmer("servico") %>%
   add_resource("administrativo", capacity = schedule) %>%
