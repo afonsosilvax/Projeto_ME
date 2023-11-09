@@ -37,6 +37,7 @@ tempo <- function() ifelse(consulta() == 0, triagem() + tomada_decisao(), triage
 tipo_contacto <- function() sample(0:1, 1, T, prob = c(0.15, 0.85))
 ```
 
+1.
 ```{r}
 set.seed(2023)
 
@@ -128,8 +129,104 @@ plot(get_mon_resources(envs), metric = "usage", "administrativo", items = "serve
 plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
 
+
 Situação de melhoria
 
+a)
+```{r}
+set.seed(2023)
+
+contactos <- trajectory("Gestao_contactos") %>%
+  branch(tipo_contacto, continue = c(TRUE), 
+         trajectory() %>% 
+           set_prioritization(function() {c(-1, 1, FALSE)} ) %>%
+           renege_in(5, out = trajectory("Rejeita chamada"))) %>% 
+  
+  seize("administrativo") %>%
+  renege_abort() %>%
+
+  set_attribute("tipo_consulta", tempo) %>%
+  
+  timeout_from_attribute("tipo_consulta") %>%
+  
+  release("administrativo")
+
+schedule <- schedule(c(60, 90, 240, 450, 600, 660, 690, 840, 1050, 1200, 1260, 1290, 1440, 1650, 1800, 1860, 1890, 2040, 2250, 2400, 2460, 2490, 2640, 2850, 3000), c(1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1), period = 3000)
+
+env <- simmer("servico") %>%
+  add_resource("administrativo", capacity = schedule) %>%
+  add_generator("Contactos1", contactos, from_to(0, 120, function() rexp(1, 1), every = 600)) %>%
+  add_generator("Contactos2", contactos, from_to(120, 480, function() rexp(1, 2/3), every = 600)) %>%
+  add_generator("Contactos3", contactos, from_to(480, 600, function() rexp(1, 1/3), every = 600)) %>%
+  run(3000)
+```
+
+```{r}
+arrivals <- get_mon_arrivals(env)
+nrow(arrivals)
+```
+
+```{r}
+resources <- get_mon_resources(env)
+plot(resources, metric = "utilization")
+```
+
+```{r}
+plot(resources, metric = "usage", item = "server")
+```
+
+```{r}
+plot(arrivals, metric = "flow_time")
+```
+
+```{r}
+plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
+```
+
+```{r}
+plot(resources, metric="usage", c("administrativo"), steps=TRUE)
+```
+
+```{r}
+set.seed(2023)
+
+envs <- lapply(1:50, function(i) {
+  simmer("servico") %>%
+  add_resource("administrativo", capacity = schedule) %>%
+  add_generator("Contactos1", contactos, from_to(0, 120, function() rexp(1, 1), every = 600)) %>%
+  add_generator("Contactos2", contactos, from_to(120, 480, function() rexp(1, 2/3), every = 600)) %>%
+  add_generator("Contactos3", contactos, from_to(480, 600, function() rexp(1, 1/3), every = 600)) %>%
+  run(3000)
+})
+```
+
+```{r}
+arrivals <- get_mon_arrivals(env)
+nrow(arrivals)
+```
+
+```{r}
+resources <- get_mon_resources(env)
+plot(resources, metric = "utilization")
+```
+
+```{r}
+plot(resources, metric = "usage", item = "server")
+```
+
+```{r}
+plot(arrivals, metric = "flow_time")
+```
+
+```{r}
+plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
+```
+
+```{r}
+plot(resources, metric="usage", c("administrativo"), steps=TRUE)
+```
+
+b)
 ```{r}
 set.seed(2023)
 
@@ -177,13 +274,12 @@ plot(arrivals, metric = "flow_time")
 ```
 
 ```{r}
-plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
+plot(resources, metric = "usage", items = "server", steps = TRUE)
 ```
 
 ```{r}
 plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
-
 ```{r}
 set.seed(2023)
 
@@ -222,97 +318,3 @@ plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server
 ```{r}
 plot(resources, metric="usage", c("administrativo"), steps=TRUE)
 ```
-
-```{r}
-set.seed(2023)
-
-contactos <- trajectory("Gestao_contactos") %>%
-  branch(tipo_contacto, continue = c(TRUE), 
-         trajectory() %>% 
-           set_prioritization(function() {c(1, 1, FALSE)} ) %>%
-           renege_in(5, out = trajectory("Rejeita chamada"))) %>% 
-  
-  seize("administrativo") %>%
-  renege_abort() %>%
-
-  set_attribute("tipo_consulta", tempo) %>%
-  
-  timeout_from_attribute("tipo_consulta") %>%
-  
-  release("administrativo")
-
-schedule <- schedule(c(60, 90, 240, 450, 600, 660, 690, 840, 1050, 1200, 1260, 1290, 1440, 1650, 1800, 1860, 1890, 2040, 2250, 2400, 2460, 2490, 2640, 2850, 3000), c(1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1, 1, 2, 4, 3, 1), period = 3000)
-
-env <- simmer("servico") %>%
-  add_resource("administrativo", capacity = schedule) %>%
-  add_generator("Contactos1", contactos, from_to(0, 120, function() rexp(1, 1), every = 600)) %>%
-  add_generator("Contactos2", contactos, from_to(120, 480, function() rexp(1, 2/3), every = 600)) %>%
-  add_generator("Contactos3", contactos, from_to(480, 600, function() rexp(1, 1/3), every = 600)) %>%
-  run(3000)
-```
-
-```{r}
-arrivals <- get_mon_arrivals(env)
-nrow(arrivals)
-```
-
-```{r}
-resources <- get_mon_resources(env)
-plot(resources, metric = "utilization")
-```
-
-```{r}
-plot(resources, metric = "usage", item = "server")
-```
-
-```{r}
-plot(arrivals, metric = "flow_time")
-```
-
-```{r}
-plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
-```
-
-```{r}
-plot(resources, metric="usage", c("administrativo"), steps=TRUE)
-```
-
-```{r}
-set.seed(2023)
-
-envs <- lapply(1:50, function(i) {
-  simmer("servico") %>%
-  add_resource("administrativo", capacity = schedule) %>%
-  add_generator("Contactos1", contactos, from_to(0, 120, function() rexp(1, 1), every = 600)) %>%
-  add_generator("Contactos2", contactos, from_to(120, 480, function() rexp(1, 2/3), every = 600)) %>%
-  add_generator("Contactos3", contactos, from_to(480, 600, function() rexp(1, 1/3), every = 600)) %>%
-  run(3000)
-})
-```
-
-```{r}
-arrivals <- get_mon_arrivals(env)
-nrow(arrivals)
-```
-
-```{r}
-resources <- get_mon_resources(env)
-plot(resources, metric = "utilization")
-```
-
-```{r}
-plot(resources, metric = "usage", item = "server")
-```
-
-```{r}
-plot(arrivals, metric = "flow_time")
-```
-
-```{r}
-plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
-```
-
-```{r}
-plot(resources, metric="usage", c("administrativo"), steps=TRUE)
-```
-
