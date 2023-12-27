@@ -201,12 +201,12 @@ envs <- lapply(1:50, function(i) {
 ```
 
 ```{r}
-arrivals <- get_mon_arrivals(env)
+arrivals <- get_mon_arrivals(envs)
 nrow(arrivals)
 ```
 
 ```{r}
-resources <- get_mon_resources(env)
+resources <- get_mon_resources(envs)
 plot(resources, metric = "utilization")
 ```
 
@@ -219,7 +219,7 @@ plot(arrivals, metric = "flow_time")
 ```
 
 ```{r}
-plot(get_mon_resources(env), metric = "usage", "administrativo", items = "server", steps = TRUE)
+plot(get_mon_resources(envs), metric = "usage", "administrativo", items = "server", steps = TRUE)
 ```
 
 ```{r}
